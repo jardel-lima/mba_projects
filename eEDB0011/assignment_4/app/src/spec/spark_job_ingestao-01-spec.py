@@ -20,6 +20,9 @@ class ETLJob:
     """
 
     def __init__(self,
+                 table_bancos:str="db_sot.tb_bancos",
+                 table_empregados:str="db_sot.tb_empregados",
+                 table_reclamacoes:str="db_sot.tb_reclamacoes",
                  table_name:str=None, 
                  database:str=None,
                  host:str=None, 
@@ -34,9 +37,9 @@ class ETLJob:
         self.glueContext: GlueContext = GlueContext(self.sc)
         self.spark: SparkSession = self.glueContext.spark_session
         self.job = Job(self.glueContext)
-        self.bancos: str = "db_sot.tb_bancos"
-        self.empregados: str = "db_sot.tb_empregados"
-        self.reclamacoes: str = "db_sot.tb_reclamacoes"
+        self.bancos = table_bancos
+        self.empregados = table_empregados
+        self.reclamacoes = table_reclamacoes
         
         self.table_name = table_name
         self.database = database
@@ -184,6 +187,7 @@ class ETLJob:
         Returns:
             None
         """
+        
         connection = {
                 "url": f"jdbc:mysql://{self.host}:3306/{self.database}",
                 "dbtable": self.table_name,
@@ -193,10 +197,11 @@ class ETLJob:
                 "customJdbcDriverClassName": "com.mysql.cj.jdbc.Driver"
                 }
              
-        glue_df = DynamicFrame.fromDF(dataframe, self.glueContext)
+        glue_df = DynamicFrame.fromDF(dataframe, self.glueContext, self.table_name)
         self.glueContext.write_from_options(frame_or_dfc=glue_df, 
                                                 connection_type="mysql", 
                                                 connection_options=connection)
+        
 
     def run(self) -> None:
         """
@@ -213,6 +218,9 @@ class ETLJob:
 if __name__ == '__main__':
     args = getResolvedOptions(sys.argv,
                           ["JOB_NAME",
+                           "TABLE_BANCOS",
+                           "TABLE_EMPREGADOS",
+                           "TABLE_RECLAMACOES",
                            "TABLE_NAME",
                            "DATABASE",
                            "DB_HOST",
@@ -221,7 +229,9 @@ if __name__ == '__main__':
                            "DRIVER_PATH"
                            ])
     
-    ETL: ETLJob = ETLJob(
+    ETL: ETLJob = ETLJob(table_bancos=args.get("TABLE_BANCOS"),
+                         table_empregados=args.get("TABLE_EMPREGADOS"),
+                         table_reclamacoes=args.get("TABLE_RECLAMACOES"),
                          table_name=args.get("TABLE_NAME"),
                          database=args.get("DATABASE"),
                          host=args.get("DB_HOST"),
